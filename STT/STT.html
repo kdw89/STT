@@ -1,0 +1,587 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="https://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <title>Speech To Text</title>
+    <style>
+        body {
+            text-align: center;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        button {
+            padding: 10px;
+        }
+
+        #message {
+            color: #996600;
+        }
+
+        .textWrapper {
+            width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: row;
+        }
+
+        .textboxs {
+            min-height: 15%;
+            height: 50vh;
+            border: 1px solid #d3d3d3;
+            flex: 1;
+            margin: 20px 20px;
+            border-radius: 10px;
+            text-align: left;
+            padding: 20px;
+            font-size: 4em;
+            font-weight: bold;
+            overflow: auto;
+        }
+
+        .textbox {
+            min-height: 60px;
+            border-bottom: 1px solid black;
+            /* font-size: 4em; */
+            font-weight: bold;
+        }
+
+        .button {
+            font-size: 2.3em;
+            width: 100%;
+
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        div.namietablepurple {
+            background: #faf9fd;
+            ;
+        }
+
+        div.namietablepurple div.t1 {
+            background: #faf9fd;
+        }
+
+        div.namietablepurple div.t2 {
+            background: #f8f5ff;
+        }
+
+        div.namietablepurple div.t3 {
+            background: #f4efff;
+        }
+
+        div.namietablepurple div.t4 {
+            background: #f1eaff;
+        }
+
+        div.namietablepurple div.t5 {
+            background: #ece2ff;
+        }
+
+
+        #fixed1 {
+            position: fixed;
+            bottom: 50%;
+            margin: 0 auto;
+            left: -10%;
+            right: 0;
+            width: fixed;
+            padding: 5px;
+            color: white;
+        }
+
+        #canvas {
+            width: 150px;
+            height: 300px;
+            position: fixed;
+            bottom: 50%;
+            margin: 0 auto;
+            left: 10%;
+            right: 0;
+            text-align: center;
+        }
+
+        /*마이크 아이콘, 볼륨바*/
+
+        /*  */
+    </style>
+    <script type="text/javascript">
+        function setFlag(obj) {
+            var fontColor = obj.style.color;
+            var id = obj.id;
+            id = id.replace("t", "");
+
+            if (fontColor == "gray") {
+                $.ajax({
+                    Type: "POST",
+                    data: {
+                        id: id,
+                        text: "1",
+                        type: "flag"
+                    },
+                    url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+
+                    complete: function() {
+                        selectTextAll();
+                    }
+                });
+            } else {
+                $.ajax({
+                    Type: "POST",
+                    data: {
+                        id: id,
+                        text: "0",
+                        type: "flag"
+                    },
+                    url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+
+                    complete: function() {
+                        selectTextAll();
+                    }
+                });
+            }
+            selectTextAll();
+        }
+    </script>
+    <script>
+        //볼륨바 스크립트
+        navigator.getUserMedia = navigator.getUserMedia ||
+            navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia;
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia({
+                    audio: true
+                },
+                function(stream) {
+                    audioContext = new AudioContext();
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+                    analyser.smoothingTimeConstant = 0.8;
+                    analyser.fftSize = 1024;
+
+                    microphone.connect(analyser);
+                    analyser.connect(javascriptNode);
+                    javascriptNode.connect(audioContext.destination);
+
+                    canvasContext = $("#canvas")[0].getContext("2d");
+
+                    javascriptNode.onaudioprocess = function() {
+                        var array = new Uint8Array(analyser.frequencyBinCount);
+                        analyser.getByteFrequencyData(array);
+                        var values = 0;
+
+                        var length = array.length;
+                        for (var i = 0; i < length; i++) {
+                            values += (array[i]);
+                        }
+
+                        var average = values / length;
+
+                        //          console.log(Math.round(average - 40));
+
+                        canvasContext.clearRect(0, 0, 150, 300);
+                        canvasContext.fillStyle = '#BadA55';
+                        canvasContext.fillRect(0, 300 - average, 150, 300);
+                        canvasContext.fillStyle = '#262626';
+                        canvasContext.font = "48px impact";
+                        canvasContext.fillText(Math.round(average), -2, 300);
+
+                    } // end fn stream
+                },
+                function(err) {
+                    console.log("The following error occured: " + err.name)
+                });
+        } else {
+            console.log("getUserMedia not supported");
+        }
+    </script>
+</head>
+
+<body>
+    <!-- <h1>Speech To Text</h1> -->
+    <div>
+        <div id="message"></div>
+        <div id="english" class="textboxs namietablepurple">
+            <div id="t1" class="textbox t1" onclick="setFlag(this)"></div>
+            <div id="t2" class="textbox t2" onclick="setFlag(this)"></div>
+            <div id="t3" class="textbox t3" onclick="setFlag(this)"></div>
+            <div id="t4" class="textbox t4" onclick="setFlag(this)"></div>
+            <div id="t5" class="textbox t5" onclick="setFlag(this)"></div>
+        </div>
+        <div id="korea" class="textboxs" style="height: 15vh; font-size: 2.5em;"></div>
+    </div>
+
+    <div style="width:14%; text-align:left; display:inline-block; float:left; padding:20px;">
+        <button id="speech" class="button" onclick="speech_to_text()">음성인식 시작</button>
+    </div>
+
+    <div style="width:14%; text-align:right; display:inline-block; float:left; padding:20px;">
+        <button id="stop" class="button" onclick="stop()">음성인식 종료</button>
+    </div>
+
+    <div style="width:14%; text-align:left; display:inline-block; float:left; padding:20px;">
+        <button id="voice" class="button" onclick="voice_start()">선택 읽기</button>
+    </div>
+    <div style="width:14%; text-align:left; display:inline-block; float:left; padding:20px;">
+        <button id="readall" class="button" onclick="voice_all()">전체 읽기</button>
+    </div>
+
+
+    <div style="width:14%; text-align:right; display:inline-block; float:left; padding:20px;">
+        <button id="clearAll" class="button" onclick="clearAll1()">전체 지우기</button>
+    </div>
+
+    <div style="width:14%; text-align:right; display:inline-block; float:left; padding:20px;">
+        <button id="clearOne" class="button" onclick="clearOne1()">끝줄 지우기</button>
+    </div>
+
+    <!-- <div class="" style="text-align: left">
+        <button id="speech" class="button" onclick="speech_to_text()">Start STT</button>
+        <button id="stop" class="button" onclick="stop()">Stop</button>
+    </div>
+
+    <br>
+    <div class="" style="text-align: left">
+        <button id="voice" class="button" onclick="voice_start()">Read Stack</button>
+        <button id="readall" class="button" onclick="voice_all()">Read ALL</button>
+
+    </div> -->
+
+    <img src="poly.png" style="position: fixed; bottom : 0; right: 0; width:15%; float:right; padding:20px;">
+
+
+
+
+    <div id=fixed1></div>
+    <!--마이크, 볼륨바-->
+    <canvas id="canvas" style='display:none;' width="150" height="300"></canvas>
+
+    <script type="text/javascript">
+        var message = document.querySelector("#message");
+        var button = document.querySelector("#speech");
+        var stopButton = document.querySelector("#stop");
+        var english = document.querySelector("#english");
+        var korea = document.querySelector("#korea");
+
+        var clearAll = document.getElementById("clearAll");
+        var clearOne = document.getElementById("clearOne");
+        //
+        var canvas = document.getElementById("canvas");
+        var voiceButton = document.getElementById("voice");
+        var readAll = document.getElementById("readall");
+        var getvoices = false;
+        var isreading = false;
+
+        function selectTextAll() {
+            $.ajax({
+                Type: "POST",
+                cache: false,
+                url: "https://ctckopo.bu.to/STT/read.jsp",
+                dataType: "text",
+
+                success: function(data) {
+                    result = $(data).filter("#dbcontent");
+                    var count = $(result).find("#c5").text();
+                    //console.log('Count = '+ count);
+                    for (i = 1; i < 6; i++) {
+                        var textNum = "t" + i;
+                        var idTextNum = "#" + textNum;
+                        var flagNum = "#f" + i;
+                        var readNum = "#r" + i;
+
+                        var text = $(result).find(idTextNum);
+                        var flag = $(result).find(flagNum).text();
+                        var read = $(result).find(readNum).text();
+                        if (!isreading && !getvoices) {
+                            button.disabled = false;
+                            voiceButton.disabled = false;
+                            readAll.disabled = false;
+                            clearAll.disabled = false;
+                            clearOne.disabled = false;
+                        } else if (isreading || getvoices) {
+                            button.disabled = true;
+                            if (!isreading && getvoices) {
+                                stopButton.disabled = false;
+                            } else {
+                                stopButton.disabled = true;
+                            }
+                            voiceButton.disabled = true;
+                            readAll.disabled = true;
+                            clearAll.disabled = true;
+                            clearOne.disabled = true;
+                        }
+                        if (flag == "1") {
+                            $(idTextNum).css("color", "black");
+                        } else if (flag == "0") {
+                            $(idTextNum).css("color", "gray");
+                        }
+                        $(idTextNum).html(text);
+                        if (count == 0) {
+                            isreading = false;
+                        }
+                        //button_setting(isreading, count);
+                    }
+                }
+            });
+        }
+        selectTextAll();
+        setInterval(selectTextAll, 1000);
+
+        //
+
+        //console.log('Count = '+ countNum);
+        //if(!isreading && countNum == 0){
+        //
+        //}
+
+        var isRecognizing = false;
+        if ('SpeechRecognition' in window) {
+            // Speech recognition support. Talk to your apps!
+            console.log("음성인식을 지원하는 브라우저입니다.")
+        }
+        try {
+            var recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+        } catch (e) {
+            console.error(e);
+        }
+        recognition.lang = 'ko-KR'; //선택하게 해줘야 할듯 .
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = true;
+
+        function speech_to_text() {
+            //
+            getvoices = true;
+            // voiceButton.disabled = true;
+            // readAll.disabled = true;
+            //
+
+            recognition.start();
+            var resText = "";
+            var cnt = 0;
+            isRecognizing = true;
+
+            recognition.onstart = function() {
+                console.log("음성인식이 시작 되었습니다. 이제 마이크에 무슨 말이든 하세요.")
+                //message.innerHTML = "음성인식 시작...";
+                button.innerHTML = "인식 중...";
+                fixed1.innerHTML = "<img src='mic.gif'>";
+                canvas.style.display = 'block';
+                // button.disabled = true;
+                // //
+                // clearAll.disabled = true;
+                // clearOne.disabled = true;
+            }
+
+            recognition.onresult = function(event) {
+                console.log('You said: ', event.results[cnt][0].transcript);
+                // 결과를 출력
+                resText = resText + event.results[cnt][0].transcript;
+                korea.innerHTML = resText;
+                //text to sppech
+                cnt = cnt + 1;
+            };
+
+            recognition.onend = function() {
+                translateText(resText, 'en');
+                //message.innerHTML = "버튼을 누르고 아무말이나 하세요.";
+                // button.disabled = false;
+                button.innerHTML = "음성인식 시작";
+                fixed1.innerHTML = "";
+                canvas.style.display = 'none';
+                isRecognizing = false;
+            }
+        }
+
+
+        function stop() {
+            recognition.stop();
+            //message.innerHTML = "버튼을 누르고 아무말이나 하세요.";
+            // button.disabled = false;
+            button.innerHTML = "음성인식 시작";
+            fixed1.innerHTML = "";
+            canvas.style.display = 'none';
+            isRecognizing = false;
+
+            //
+            // voiceButton.disabled = false;
+            // readAll.disabled = false;
+            // clearAll.disabled = false;
+            // clearOne.disabled = false;
+            getvoices = false;
+            //
+
+        }
+
+        function clearAll1() {
+            $.ajax({
+                Type: "POST",
+                data: {
+                    type: "clearAll"
+                },
+                url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+                success: function(response) {
+
+
+                }
+            });
+        }
+
+        function clearOne1() {
+            $.ajax({
+                Type: "POST",
+                data: {
+                    type: "clearOne"
+                },
+                url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+                success: function(response) {
+
+
+                }
+            });
+        }
+        // Text to speech
+        function text_to_speech(txt) {
+            // Web Speech API - speech synthesis
+            if ('speechSynthesis' in window) {
+                // Synthesis support. Make your web apps talk!
+                console.log("음성합성을 지원하는  브라우저입니다.");
+            }
+            var msg = new SpeechSynthesisUtterance();
+            var voices = window.speechSynthesis.getVoices();
+            msg.voice = voices[1]; // 두번째 부터 완전 외국인 발음이 됨. 사용하지 말것.
+            msg.voiceURI = 'native';
+            msg.volume = 1; // 0 to 1
+            msg.rate = 1.3; // 0.1 to 10
+            //msg.pitch = 2; //0 to 2
+            msg.text = txt;
+            msg.lang = 'en-US';
+            msg.onend = function(e) {
+                // if(isRecognizing == false) {
+                //     recognition.start();
+                // }
+
+                console.log('Finished in ' + event.elapsedTime + ' seconds.');
+            };
+            window.speechSynthesis.speak(msg);
+        }
+
+        function translateText(txt, userLang) {
+            var sourceText = txt;
+            $.ajax({
+                type: "POST",
+                data: '&target=' + userLang + '&format=html&q=' + sourceText,
+                url: 'https://www.googleapis.com/language/translate/v2?key=AIzaSyAyXCE-8L_LygsINWE2Gfu1iIJUndMSx9A',
+
+                success: function(response) {
+                    var transtext = response.data.translations[0].translatedText;
+                    if (transtext.trim() == "") {
+                        // console.log("말해 임마");
+                        alert("음성이 인식되지 않았습니다.");
+                    } else {
+                        transtext = transtext.replace("&#39;", "'");
+                        insertDB(transtext);
+                        console.log('en : ' + transtext);
+                        // english.innerHTML += "<br />" + transtext;
+                        selectTextAll();
+                        // translateText2(transtext, 'en');
+                    }
+
+                }
+            });
+        }
+
+        function insertDB(content) {
+            $.ajax({
+                Type: "POST",
+                // data: '&text=' + content + "&type=insert",
+                data: {
+                    text: content,
+                    type: "insert"
+                },
+                url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+
+                success: function(response) {
+
+
+                }
+            });
+        }
+
+        function voice_start() {
+            isreading = true;
+            console.log("[voice_start] 버튼 클릭");
+            $.ajax({
+                Type: "POST",
+                //data: '&text=1&type=voice',
+                data: {
+                    text: "1",
+                    type: "voice"
+                },
+                url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+
+
+
+                complete: function() {
+                    console.log("[voice_start] complete");
+                    selectTextAll();
+
+                }
+            });
+        }
+
+        function voice_all() {
+            $.ajax({
+                Type: "POST",
+                data: {
+                    type: "all"
+                },
+                // data: '&text=1&type=all',
+                url: 'https://ctckopo.bu.to/STT/cruddb.jsp',
+
+                // success:function(response){
+                //     selectTextAll();
+                // },
+
+                complete: function() {
+                    selectTextAll();
+                }
+
+            });
+            isreading = true;
+        }
+
+        // function button_setting(isreading, count) {
+        //     var reading = isreading;
+        //     var countNum = count;
+        //     // console.log('Count = ' + countNum);
+        //     if (!reading && countNum == 0) {
+        //         // voiceButton.disabled = false;
+        //         // readAll.disabled = false;
+        //
+        //         // $("#voice").show();
+        //         // $("#readall").show();
+        //         //}else if (!reading && countNum != 0){
+        //         //
+        //         //} else if (reading && countNum ==0){
+        //         //
+        //     } else if (reading && countNum != 0) {
+        //         // voiceButton.disabled = true;
+        //         // readAll.disabled = true;
+        //         // $("#voice").hide();
+        //         // $("#readall").hide();
+        //     }
+        // }
+    </script>
+</body>
+
+</html>
